@@ -125,7 +125,7 @@ def message(client, topic, message):
             updatedot()
             publishstate()
     if(topic == bright_feed):
-        bright = int(message) / 512
+        bright = int(message)
         updatedot()
         publishstate()
     if(topic == rgb_feed):
