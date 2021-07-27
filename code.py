@@ -1,5 +1,3 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
 import board
 import pwmio
 import time
@@ -48,10 +46,15 @@ led_red = pwmio.PWMOut(board.D9, frequency=5000, duty_cycle=0)
 led_green = pwmio.PWMOut(board.D6, frequency=5000, duty_cycle=0)
 led_blue = pwmio.PWMOut(board.D5, frequency=5000, duty_cycle=0)
 
-red = 0
-green = 0
-blue = 0
-bright = 0
+#led_green = pwmio.PWMOut(board.D9, frequency=5000, duty_cycle=0)
+#led_blue = pwmio.PWMOut(board.D6, frequency=5000, duty_cycle=0)
+#led_red = pwmio.PWMOut(board.D5, frequency=5000, duty_cycle=0) 
+
+red = 255
+green = 255
+blue = 255
+bright = 255
+state = False
 
 ### Code ###
 
@@ -59,20 +62,20 @@ def publishstate():
     #mqtt_client.publish(onoff_status, '{"state": "ON"}')
     #mqtt_client.publish(bright_status, '{"brightness": "100"}')
     #mqtt_client.publish(rgb_status, '{"rgb": [10,10,10]}')
-    mqtt_client.publish(onoff_status, 'OFF' if bright == 0 else 'ON')
-    mqtt_client.publish(bright_status, bright * 512)
+    mqtt_client.publish(bright_status, bright)
     mqtt_client.publish(rgb_status, f'{red},{green},{blue}')
+    mqtt_client.publish(onoff_status, 'ON' if state else 'OFF')
 
 def updatedot():
-    print(f"Setting dot {red} {green} {blue} {bright}")
-    dotstar[0] = ( red, green, blue, bright)
-    r = int(512 * red * bright)
-    led_red.duty_cycle = r
-    g = int(512 * green * bright)
-    led_green.duty_cycle = g
-    b = int(512 * blue * bright)
-    led_blue.duty_cycle = b
+    #print(f"Setting dot {red} {green} {blue} {bright}")
+    #dotstar[0] = ( red, green, blue, bright/512)
+    r = int(red * bright) if state else 0
+    g = int(green * bright) if state else 0
+    b = int(blue * bright) if state else 0
     print(f"Setting strip {r} {g} {b}")
+    led_red.duty_cycle = r
+    led_green.duty_cycle = g
+    led_blue.duty_cycle = b
 
 
 
@@ -101,23 +104,22 @@ def message(client, topic, message):
     global green
     global blue
     global bright
+    global state
     # This method is called when a topic the client is subscribed to
     # has a new message.
     print("New message on topic {0}: {1}".format(topic, message))
 
     if(topic == onoff_feed):
         if(message == 'ON'):
+            state = True
             red = 255 if bright == 0 else red
             green = 255 if bright == 0 else green
             blue = 255 if bright == 0 else blue
-            bright = 255/512 if bright == 0 else bright
+            bright = 255 if bright == 0 else bright
             updatedot()
             publishstate()
         if(message == 'OFF'):
-            red = 0
-            green = 0
-            blue = 0
-            bright = 0
+            state = False
             updatedot()
             publishstate()
     if(topic == bright_feed):
