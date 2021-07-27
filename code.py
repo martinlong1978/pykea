@@ -65,6 +65,8 @@ def publishstate():
     mqtt_client.publish(bright_status, bright)
     mqtt_client.publish(rgb_status, f'{red},{green},{blue}')
     mqtt_client.publish(onoff_status, 'ON' if state else 'OFF')
+    mqtt_client.publish(bright_status, bright)
+    mqtt_client.publish(rgb_status, f'{red},{green},{blue}')
 
 def updatedot():
     #print(f"Setting dot {red} {green} {blue} {bright}")
