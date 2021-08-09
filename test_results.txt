@@ -2,8 +2,8 @@ Thanks for buying a FeatherS2!
 
 Your board has been tested and here are the results for your reference.
 
-Test Date & Time: 06/21/2021, 17:25:07 <- Australia
-MAC Address: 7c:df:a1:10:17:c8
+Test Date & Time: 06/21/2021, 18:05:04 <- Australia
+MAC Address: 7c:df:a1:10:17:84
 
 PSRAM: 8190768 bytes
 FLASH: 16384 KB
