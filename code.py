@@ -31,57 +31,6 @@ def setdisplay():
         display_bus, width=WIDTH, height=HEIGHT, rotation=0
     )
 
-# Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
-# "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
-# source control.
-# pylint: disable=no-name-in-module,wrong-import-order
-try:
-    from secrets import secrets
-except ImportError:
-    print("WiFi secrets are kept in secrets.py, please add them there!")
-    raise
-
-setdisplay()
-
-dotstar = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.5, auto_write=True)
-
-# Set your Adafruit IO Username and Key in secrets.py
-# (visit io.adafruit.com if you need to create an account,
-# or if you need your Adafruit IO key.)
-aio_username = secrets["aio_username"]
-aio_key = secrets["aio_key"]
-
-print("Connecting to %s" % secrets["ssid"])
-wifi.radio.connect(secrets["ssid"], secrets["password"])
-print("Connected to %s!" % secrets["ssid"])
-### Feeds ###
-
-# Setup a feed named 'photocell' for publishing to a feed
-photocell_feed = secrets["aio_username"] + "/feeds/photocell"
-
-# Setup a feed named 'onoff' for subscribing to changes
-onoff_feed = secrets["aio_username"] + "/feeds/onoff"
-bright_feed = secrets["aio_username"] + "/feeds/bright"
-rgb_feed = secrets["aio_username"] + "/feeds/rgb"
-username = secrets["aio_username"] 
-
-onoff_status = secrets["aio_username"] + "/feeds/onoff/state"
-bright_status = secrets["aio_username"] + "/feeds/bright/state"
-rgb_status = secrets["aio_username"] + "/feeds/rgb/state"
-
-update_status = "feeds/updates"
-
-led_green = pwmio.PWMOut(board.D9, frequency=5000, duty_cycle=0)
-led_blue = pwmio.PWMOut(board.D6, frequency=5000, duty_cycle=0)
-led_red = pwmio.PWMOut(board.D5, frequency=5000, duty_cycle=0) 
-
-
-red = 255
-green = 255
-blue = 255
-bright = 255
-state = False
-isconnected = False
 
 ### Code ###
 
@@ -123,6 +72,7 @@ def connected(client, userdata, flags, rc):
     client.subscribe(bright_feed)
     client.subscribe(rgb_feed) 
     client.subscribe(update_status) 
+    client.subscribe(username + update_status) 
 
     loadstate()
     updatedot()
@@ -187,7 +137,7 @@ def message(client, topic, message):
         rgbmsg(message)
         updatedot()
         publishstate()
-    if(topic == update_status):
+    if(topic == update_status or topic == username + update_status):
         runupdate(message)
 
 
@@ -197,51 +147,108 @@ def runupdate(message):
 
 
 def http_get(url):
-    file = url[url.index('/', url.index('://') + 3):]
     session = requests.Session(pool)
-    data = session.get(url)
-    print(f"Updating file {file}")
-    with open(file, "w") as fp:
-        for chunk in data.iter_content(1000):
-            fp.write(chunk)
-        fp.flush()
-    mqtt_client.publish(update_status + '/response', f'Successfully updated {username} file {file}')
+    datafile = session.get(url + "light_update.txt")
+    files = datafile.text.splitlines()
+    for file in files:
+        data = session.get(url + file)
+        local = file[12:]
+        print(f"Updating file {file} to {local}")
+        if(len(local) > 1):
+            with open(file[12:], "w") as fp:
+                for chunk in data.iter_content(1000):
+                    fp.write(chunk)
+                fp.flush()
+        try:
+            mqtt_client.publish(update_status + '/response', f'Successfully updated {username} file {file}')
+        except:
+            print("Failed to publish update state")
     supervisor.reload()
 
+# Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
+# "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
+# source control.
+# pylint: disable=no-name-in-module,wrong-import-order
+try:
+    from secrets import secrets
+except ImportError:
+    print("WiFi secrets are kept in secrets.py, please add them there!")
+    raise
 
-# Create a socket pool
-pool = socketpool.SocketPool(wifi.radio)
+try:
+    setdisplay()
 
-# Set up a MiniMQTT Client
-mqtt_client = MQTT.MQTT(
-    broker=secrets["broker"],
-    port=secrets["port"],
-    username=secrets["aio_username"],
-    password=secrets["aio_key"],
-    socket_pool=pool,
-    ssl_context=ssl.create_default_context(),
-)
+    dotstar = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.5, auto_write=True)
 
-# Setup the callback methods above
-mqtt_client.on_connect = connected
-mqtt_client.on_disconnect = disconnected
-mqtt_client.on_message = message
+    # Set your Adafruit IO Username and Key in secrets.py
+    # (visit io.adafruit.com if you need to create an account,
+    # or if you need your Adafruit IO key.)
+    aio_username = secrets["aio_username"]
+    aio_key = secrets["aio_key"]
 
-# Connect the client to the MQTT broker.
+    print("Connecting to %s" % secrets["ssid"])
+    wifi.radio.connect(secrets["ssid"], secrets["password"])
+    print("Connected to %s!" % secrets["ssid"])
+    ### Feeds ###
+    # Create a socket pool
+    pool = socketpool.SocketPool(wifi.radio)
 
-while True:
-    if(not isconnected) :
-        try :
-            print("Connecting to Adafruit IO...")
-            mqtt_client.connect()
+    # Set up a MiniMQTT Client
+    mqtt_client = MQTT.MQTT(
+        broker=secrets["broker"],
+        port=secrets["port"],
+        username=secrets["aio_username"],
+        password=secrets["aio_key"],
+        socket_pool=pool,
+        ssl_context=ssl.create_default_context(),
+    )
+
+    # Setup a feed named 'onoff' for subscribing to changes
+    onoff_feed = secrets["aio_username"] + "/feeds/onoff"
+    bright_feed = secrets["aio_username"] + "/feeds/bright"
+    rgb_feed = secrets["aio_username"] + "/feeds/rgb"
+    username = secrets["aio_username"] 
+
+    onoff_status = secrets["aio_username"] + "/feeds/onoff/state"
+    bright_status = secrets["aio_username"] + "/feeds/bright/state"
+    rgb_status = secrets["aio_username"] + "/feeds/rgb/state"
+
+    update_status = "/feeds/updates"
+
+    led_green = pwmio.PWMOut(board.D9, frequency=5000, duty_cycle=0)
+    led_blue = pwmio.PWMOut(board.D6, frequency=5000, duty_cycle=0)
+    led_red = pwmio.PWMOut(board.D5, frequency=5000, duty_cycle=0) 
+
+    red = 255
+    green = 255
+    blue = 255
+    bright = 255
+    state = False
+    isconnected = False
+
+    # Setup the callback methods above
+    mqtt_client.on_connect = connected
+    mqtt_client.on_disconnect = disconnected
+    mqtt_client.on_message = message
+
+    # Connect the client to the MQTT broker.
+
+    while True:
+        if(not isconnected) :
+            try :
+                print("Connecting to Adafruit IO...")
+                mqtt_client.connect()
+            except MQTT.MMQTTException:
+                isconnected = False
+
+        # Poll the message queue
+        try:
+            mqtt_client.loop()
         except MQTT.MMQTTException:
             isconnected = False
 
-    # Poll the message queue
-    try:
-        mqtt_client.loop()
-    except MQTT.MMQTTException:
-        isconnected = False
-
-    time.sleep(0.1)
-
+        time.sleep(0.1)
+except Exception as err:
+    exception_type = type(err).__name__
+    print(exception_type)
+    runupdate("http://hass.lan/")
