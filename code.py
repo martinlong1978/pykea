@@ -10,6 +10,7 @@ import displayio
 import terminalio
 import adafruit_requests as requests
 import supervisor
+import traceback
 
 from adafruit_display_text import label
 import adafruit_displayio_sh1107
@@ -43,7 +44,9 @@ def publishstate():
     with open("/state.txt", "w") as fp:
         fp.write('ON\n' if state else 'OFF\n')
         fp.write('{0:n}\n'.format(bright))
-        fp.write('{0:n},{0:n},{0:n}'.format(red, green, blue))
+        rgb = f'{red},{green},{blue}'
+        print(rgb)
+        fp.write(rgb)
         fp.flush()   
 
 def updatedot():
@@ -77,6 +80,7 @@ def connected(client, userdata, flags, rc):
     loadstate()
     updatedot()
     publishstate()
+    mqtt_client.publish(update_status + '/response', f'{username} is connected')
 
 
 def disconnected(client, userdata, rc):
@@ -116,6 +120,9 @@ def rgbmsg(message):
 def loadstate(): 
     with open("/state.txt", "r") as fp:
         lines = fp.read().splitlines() 
+        print(lines[0])
+        print(lines[1])
+        print(lines[2])
         onoff(lines[0])
         brightmsg(lines[1])
         rgbmsg(lines[2])
@@ -176,7 +183,7 @@ except ImportError:
     raise
 
 try:
-    setdisplay()
+    #setdisplay()
 
     dotstar = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.5, auto_write=True)
 
@@ -251,4 +258,5 @@ try:
 except Exception as err:
     exception_type = type(err).__name__
     print(exception_type)
+    traceback.print_tb(err.__traceback__)
     runupdate("http://hass.lan/")
