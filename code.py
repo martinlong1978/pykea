@@ -158,17 +158,27 @@ def runupdate(message):
 
 def http_get(url):
     session = requests.Session(pool)
-    datafile = session.get(url + "light_update.txt")
+    idx = url.rfind("/") + 1
+    file = url[idx:]
+    url = url[:idx]
+    if(len(file) == 0):
+        file = "light_update.txt"
+    print(f"Index is: {idx} path {url} file {file}")
+    datafile = session.get(url + file)
     files = datafile.text.splitlines()
     for file in files:
         data = session.get(url + file)
-        local = file[12:]
+        fileindex = file.find('/')
+        local = file[fileindex:]
         print(f"Updating file {file} to {local}")
-        if(len(local) > 1):
-            with open(file[12:], "w") as fp:
-                for chunk in data.iter_content(1000):
-                    fp.write(chunk)
-                fp.flush()
+        try:
+            if(len(local) > 1):
+                with open(file[fileindex:], "w") as fp:
+                    for chunk in data.iter_content(1000):
+                        fp.write(chunk)
+                    fp.flush()
+        except:
+            print(f"Failed updating {file}")
         try:
             mqtt_client.publish(update_status + '/response', f'Successfully updated {username} file {file}')
         except:
@@ -187,8 +197,7 @@ except ImportError:
 
 try:
     #setdisplay()
-
-    dotstar = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.5, auto_write=True)
+    #dotstar = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.5, auto_write=True)
 
     # Set your Adafruit IO Username and Key in secrets.py
     # (visit io.adafruit.com if you need to create an account,
