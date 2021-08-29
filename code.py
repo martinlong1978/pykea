@@ -10,7 +10,7 @@ import displayio
 import terminalio
 import adafruit_requests as requests
 import supervisor
-import traceback
+#import traceback
 
 from adafruit_display_text import label
 import adafruit_displayio_sh1107
@@ -120,12 +120,15 @@ def rgbmsg(message):
 def loadstate(): 
     with open("/state.txt", "r") as fp:
         lines = fp.read().splitlines() 
-        print(lines[0])
-        print(lines[1])
-        print(lines[2])
-        onoff(lines[0])
-        brightmsg(lines[1])
-        rgbmsg(lines[2])
+        try:
+            print(lines[0])
+            print(lines[1])
+            print(lines[2])
+            onoff(lines[0])
+            brightmsg(lines[1])
+            rgbmsg(lines[2])
+        except:
+            pass
 
 def message(client, topic, message):
     # This method is called when a topic the client is subscribed to
@@ -258,5 +261,5 @@ try:
 except Exception as err:
     exception_type = type(err).__name__
     print(exception_type)
-    traceback.print_tb(err.__traceback__)
+    #traceback.print_tb(err.__traceback__)
     runupdate("http://hass.lan/")
