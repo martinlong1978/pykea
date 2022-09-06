@@ -41,13 +41,13 @@ def publishstate():
     mqtt_client.publish(onoff_status, 'ON' if state else 'OFF')
     mqtt_client.publish(bright_status, bright)
     mqtt_client.publish(rgb_status, f'{red},{green},{blue}')
-    with open("/state.txt", "w") as fp:
-        fp.write('ON\n' if state else 'OFF\n')
-        fp.write('{0:n}\n'.format(bright))
-        rgb = f'{red},{green},{blue}'
-        print(rgb)
-        fp.write(rgb)
-        fp.flush()   
+    # with open("/state.txt", "w") as fp:
+    #     fp.write('ON\n' if state else 'OFF\n')
+    #     fp.write('{0:n}\n'.format(bright))
+    #     rgb = f'{red},{green},{blue}'
+    #     print(rgb)
+    #     fp.write(rgb)
+    #     fp.flush()   
 
 def updatedot():
     #print(f"Setting dot {red} {green} {blue} {bright}")
@@ -118,17 +118,18 @@ def rgbmsg(message):
     blue = int(vals[2])
 
 def loadstate(): 
-    with open("/state.txt", "r") as fp:
-        lines = fp.read().splitlines() 
-        try:
-            print(lines[0])
-            print(lines[1])
-            print(lines[2])
-            onoff(lines[0])
-            brightmsg(lines[1])
-            rgbmsg(lines[2])
-        except:
-            pass
+    print("")
+    # with open("/state.txt", "r") as fp:
+    #     lines = fp.read().splitlines() 
+    #     try:
+    #         print(lines[0])
+    #         print(lines[1])
+    #         print(lines[2])
+    #         onoff(lines[0])
+    #         brightmsg(lines[1])
+    #         rgbmsg(lines[2])
+    #     except:
+    #         pass
 
 def message(client, topic, message):
     # This method is called when a topic the client is subscribed to
@@ -268,7 +269,11 @@ try:
 
         time.sleep(0.1)
 except Exception as err:
-    exception_type = type(err).__name__
-    print(exception_type)
-    #traceback.print_tb(err.__traceback__)
-    runupdate("http://hass.lan/")
+    try:
+        exception_type = type(err).__name__
+        print(exception_type)
+        #traceback.print_tb(err.__traceback__)
+        runupdate("http://hass.lan/")
+    except Exception as err:
+        time.sleep(30)
+        supervisor.reload()
