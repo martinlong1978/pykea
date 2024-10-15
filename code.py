@@ -4,10 +4,8 @@ import time
 import ssl
 import socketpool
 import wifi
-import adafruit_dotstar
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
 import displayio
-import terminalio
 import adafruit_requests as requests
 import supervisor
 #import traceback
@@ -256,16 +254,19 @@ try:
     while True:
         if(not isconnected) :
             try :
-                print("Connecting to Adafruit IO...")
+                print("Connecting to MQTT.")
                 mqtt_client.connect()
-            except MQTT.MMQTTException:
+                isconnected = True
+            except MQTT.MMQTTException as msg:
                 isconnected = False
+                print(msg)
 
         # Poll the message queue
         try:
-            mqtt_client.loop()
-        except MQTT.MMQTTException:
+            mqtt_client.loop(timeout= 5)
+        except MQTT.MMQTTException as msg:
             isconnected = False
+            print(msg)
 
         time.sleep(0.1)
 except Exception as err:
